@@ -21,8 +21,8 @@ recapify/
 │   ├── __init__.py
 │   ├── main.py           # FastAPI entrypoint
 │   ├── routes.py         # API routes (e.g., /signup)
-│   ├── models.py         # Pydantic models for request/response
-│   ├── dependencies.py   # DB/session helpers, shared logic
+│   ├── models.py
+│
 │
 ├── templates/
 │   └── weekly_report.html
@@ -45,7 +45,7 @@ recapify/
 1. **Clone the repo:**
 
    ```pwsh
-   git clone <your-repo-url>
+   git clone https://github.com/zacisyourmaster/recapify.git
    cd recapify
    ```
 
@@ -90,6 +90,8 @@ recapify/
   ```pwsh
   python run_etl.py
   ```
+
+## Following is not implemented yet
 
 ## Running the API Server
 
