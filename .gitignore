@@ -3,3 +3,5 @@
 __pycache__/
 .cache
 *.log
+test_pull_data.ipynb
+test_render_db.py

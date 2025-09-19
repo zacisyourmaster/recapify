@@ -65,19 +65,23 @@ def init_db():
 
 
 def upsert_user(
-    conn, spotify_user_id: str, display_name: Optional[str], email: Optional[str]
-):
+    conn,
+    spotify_user_id: str,
+    display_name: Optional[str],
+    email: Optional[str],
+    refresh_token: str,
+) -> int:
     with conn.cursor() as cur:
         cur.execute(
             """
-            INSERT INTO users (spotify_user_id, display_name, email)
-            VALUES (%s, %s, %s)
+            INSERT INTO users (spotify_user_id, display_name, email,refresh_token)
+            VALUES (%s, %s, %s, %s)
             ON CONFLICT (spotify_user_id) DO UPDATE
             SET display_name = EXCLUDED.display_name,
                 email = EXCLUDED.email
             RETURNING id
             """,
-            (spotify_user_id, display_name, email),
+            (spotify_user_id, display_name, email, refresh_token),
         )
         user_id = cur.fetchone()[0]  # internal DB id
         return user_id
