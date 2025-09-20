@@ -13,7 +13,7 @@ export default function App() {
   }, []);
 
   const handleSpotifyLogin = () => {
-    window.location.href = "http://localhost:8000/login";
+    window.location.href = "https://recapify-api.onrender.com/login";
   };
 
   return (
