@@ -48,7 +48,8 @@ if missing_vars:
 
 def create_spotify_oauth(state: Optional[str] = None) -> SpotifyOAuth:
     """Create SpotifyOAuth instance with consistent configuration."""
-    os.remove(f'.cache')
+    if os.path.isfile('.cache'):
+        os.remove(f'.cache')
     return SpotifyOAuth(
         client_id=os.getenv("CLIENT_ID"),
         client_secret=os.getenv("CLIENT_SECRET"),
