@@ -53,6 +53,7 @@ def create_spotify_oauth(state: Optional[str] = None) -> SpotifyOAuth:
         redirect_uri=os.getenv("REDIRECT_URI"),
         scope=os.getenv("SCOPES"),
         state=state,
+        cache_path=None,
     )
 
 
