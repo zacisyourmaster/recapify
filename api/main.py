@@ -9,8 +9,8 @@ import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 from spotipy.exceptions import SpotifyException, SpotifyOauthError
 from sqlmodel import Session, select
-from api.models import Users
-from api.db import get_session
+from models import Users
+from db import get_session
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
