@@ -178,6 +178,8 @@ async def callback(request: Request):
                 email=email,
                 refresh_token=refresh_token,
             )
+            conn.commit()
+            conn.close()
             logger.info(f"Upserted user: {user_id} with internal DB ID: {db_user_id}")
         except Exception as e:
             logger.error(f"Database error: {str(e)}")
