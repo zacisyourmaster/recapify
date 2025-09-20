@@ -71,20 +71,31 @@ def upsert_user(
     email: Optional[str],
     refresh_token: str,
 ) -> int:
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            INSERT INTO users (spotify_user_id, display_name, email,refresh_token)
-            VALUES (%s, %s, %s, %s)
-            ON CONFLICT (spotify_user_id) DO UPDATE
-            SET display_name = EXCLUDED.display_name,
-                email = EXCLUDED.email
-            RETURNING id
-            """,
-            (spotify_user_id, display_name, email, refresh_token),
-        )
-        user_id = cur.fetchone()[0]  # internal DB id
-        return user_id
+    close_conn = False
+    if conn is None:
+        conn = get_conn()
+        close_conn = True
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO users (spotify_user_id, display_name, email,refresh_token)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (spotify_user_id) DO UPDATE
+                SET display_name = EXCLUDED.display_name,
+                    email = EXCLUDED.email
+                RETURNING id
+                """,
+                (spotify_user_id, display_name, email, refresh_token),
+            )
+            result = cur.fetchone()
+            if result is None:
+                raise Exception("Failed to upsert user: no id returned.")
+            user_id = result[0]  # internal DB id
+            return user_id
+    finally:
+        if close_conn:
+            conn.close()
 
 
 def upsert_artist(conn, artist_id: str, name: str, user_id: str, artist_image_url: str):

@@ -11,6 +11,7 @@ from spotipy.exceptions import SpotifyException, SpotifyOauthError
 from sqlmodel import Session, select
 from models import Users
 from db import get_session
+from app.db import upsert_user
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -81,7 +82,7 @@ async def login():
 
 
 @app.get("/callback")
-async def callback(request: Request, session: Session = Depends(get_session)):
+async def callback(request: Request):
     """Handle Spotify OAuth callback."""
     try:
         # Get authorization code
@@ -124,36 +125,21 @@ async def callback(request: Request, session: Session = Depends(get_session)):
         display_name = user_profile.get("display_name")
         email = user_profile.get("email")
 
-        # Database operations
+        # Database operations using upsert_user from app/db.py
         try:
-            # Check if user exists
-            statement = select(Users).where(Users.spotify_user_id == user_id)
-            existing_user = session.exec(statement).first()
+            from app.db import get_conn, upsert_user
 
-            if existing_user:
-                # Update existing user
-                existing_user.access_token = access_token
-                existing_user.refresh_token = refresh_token
-                existing_user.display_name = display_name
-                existing_user.email = email
-                logger.info(f"Updated existing user: {user_id}")
-            else:
-                # Create new user
-                new_user = Users(
-                    spotify_user_id=user_id,
-                    display_name=display_name,
-                    email=email,
-                    access_token=access_token,
-                    refresh_token=refresh_token,
-                )
-                session.add(new_user)
-                logger.info(f"Created new user: {user_id}")
-
-            session.commit()
-
+            conn = get_conn()
+            upsert_user(
+                conn=conn,
+                spotify_user_id=user_id,
+                display_name=display_name,
+                email=email,
+                refresh_token=refresh_token,
+            )
+            logger.info(f"Upserted user: {user_id}")
         except Exception as e:
             logger.error(f"Database error: {str(e)}")
-            session.rollback()
             raise HTTPException(
                 status_code=500, detail=ERROR_MESSAGES["database_error"]
             )
