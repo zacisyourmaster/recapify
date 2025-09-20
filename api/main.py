@@ -157,7 +157,8 @@ async def callback(request: Request, session: Session = Depends(get_session)):
                 status_code=500, detail=ERROR_MESSAGES["database_error"]
             )
 
-        return RedirectResponse("http://localhost:5173/?logged_in=1")
+        # return RedirectResponse("http://localhost:5173/?logged_in=1")
+        return RedirectResponse("https://recapify-site.onrender.com/?logged_in=1")
 
     except HTTPException:
         # Re-raise HTTP exceptions

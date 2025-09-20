@@ -5,9 +5,9 @@ from urllib.parse import quote_plus
 
 load_dotenv()
 password = quote_plus(os.getenv("DB_PASSWORD", ""))
-DATABASE_URL = f"postgresql+psycopg2://{os.getenv("DB_USER")}:{password}@localhost/{os.getenv("DB_NAME")}"
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-engine = create_engine(DATABASE_URL, echo=True)
+engine = create_engine(DATABASE_URL, echo=True) #type: ignore
 
 
 def get_session():
