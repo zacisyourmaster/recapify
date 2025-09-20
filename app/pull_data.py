@@ -105,6 +105,7 @@ def get_spotify_client(user=None):
         client_secret=CLIENT_SECRET,
         redirect_uri=REDIRECT_URI,
         scope=scope,
+        cache_path=None 
     )
     if user and user.get("refresh_token"):
         logging.info(f"Refreshing token for {user['spotify_user_id']}")

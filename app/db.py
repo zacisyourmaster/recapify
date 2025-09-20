@@ -79,11 +79,12 @@ def upsert_user(
         with conn.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO users (spotify_user_id, display_name, email,refresh_token)
+                INSERT INTO users (spotify_user_id, display_name, email, refresh_token)
                 VALUES (%s, %s, %s, %s)
                 ON CONFLICT (spotify_user_id) DO UPDATE
                 SET display_name = EXCLUDED.display_name,
-                    email = EXCLUDED.email
+                    email = EXCLUDED.email,
+                    refresh_token = EXCLUDED.refresh_token
                 RETURNING id
                 """,
                 (spotify_user_id, display_name, email, refresh_token),
@@ -92,6 +93,7 @@ def upsert_user(
             if result is None:
                 raise Exception("Failed to upsert user: no id returned.")
             user_id = result[0]  # internal DB id
+            conn.commit()  # Commit the transaction
             return user_id
     finally:
         if close_conn:
@@ -159,6 +161,28 @@ def get_all_users(conn=None) -> list[dict]:
                 return [dict(zip(columns, row)) for row in cur.fetchall()]
             else:
                 return []
+    finally:
+        if close_conn:
+            conn.close()
+
+
+def get_user_by_spotify_id(spotify_user_id: str, conn=None) -> Optional[dict]:
+    """Get a specific user by their Spotify ID."""
+    close_conn = False
+    if conn is None:
+        conn = get_conn()
+        close_conn = True
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, spotify_user_id, display_name, email, refresh_token FROM users WHERE spotify_user_id = %s",
+                (spotify_user_id,),
+            )
+            result = cur.fetchone()
+            if result and cur.description:
+                columns = [desc[0] for desc in cur.description]
+                return dict(zip(columns, result))
+            return None
     finally:
         if close_conn:
             conn.close()
