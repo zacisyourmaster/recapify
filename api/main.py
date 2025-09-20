@@ -8,10 +8,9 @@ from dotenv import load_dotenv
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 from spotipy.exceptions import SpotifyException, SpotifyOauthError
-from sqlmodel import Session, select
-from models import Users
-from db import get_session
-from app.db import upsert_user
+# from sqlmodel import Session, select
+# from models import Users
+# from db import get_session
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
