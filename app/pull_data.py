@@ -12,6 +12,7 @@ logging.basicConfig(
     handlers=[logging.FileHandler("pull_data.log"), logging.StreamHandler()],
 )
 
+
 def get_current_user(sp) -> dict | None:
     """Get the current user's information from Spotify."""
     try:
@@ -105,7 +106,7 @@ def get_spotify_client(user=None):
         client_secret=CLIENT_SECRET,
         redirect_uri=REDIRECT_URI,
         scope=scope,
-        cache_path=None 
+        cache_path=None,
     )
     if user and user.get("refresh_token"):
         logging.info(f"Refreshing token for {user['spotify_user_id']}")
@@ -117,80 +118,106 @@ def get_spotify_client(user=None):
 
 
 def fetch_data():
+    conn = None
     try:
         conn = db.get_conn()
         users = db.get_all_users(conn=conn)
 
         # Get current Spotify user profile
         for user in users:
-            sp = get_spotify_client(user=user)
-            user_profile = get_current_user(sp)
-            if not user_profile or not user_profile.get("id"):
-                logging.error("Could not fetch user profile from Spotify.")
-                continue
-    
-            # Fetch recent plays
-            recent = sp.current_user_recently_played()
-            if not recent or not recent.get("items"):
-                logging.info("No recent plays found.")
-                continue
+            try:
+                sp = get_spotify_client(user=user)
+                user_profile = get_current_user(sp)
+                if not user_profile or not user_profile.get("id"):
+                    logging.error(
+                        f"Could not fetch user profile from Spotify for user {user.get('spotify_user_id', 'unknown')}."
+                    )
+                    continue
 
-            # Process each recently played track
-            for item in recent["items"]:
-                track = item["track"]
-                artist = track["artists"][0]
+                # Fetch recent plays
+                recent = sp.current_user_recently_played()
+                if not recent or not recent.get("items"):
+                    logging.info(
+                        f"No recent plays found for user {user['spotify_user_id']}."
+                    )
+                    continue
 
-                artist_id = artist["id"]
-                artist_name = artist["name"]
+                # Process each recently played track
+                for item in recent["items"]:
+                    track = item["track"]
+                    artist = track["artists"][0]
 
-                track_id = track["id"]
-                track_name = track["name"]
-                album_image_url = (
-                    track["album"]["images"][0]["url"]
-                    if track["album"]["images"]
-                    else None
+                    artist_id = artist["id"]
+                    artist_name = artist["name"]
+
+                    track_id = track["id"]
+                    track_name = track["name"]
+                    album_image_url = (
+                        track["album"]["images"][0]["url"]
+                        if track["album"]["images"]
+                        else None
+                    )
+
+                    try:
+                        # Upsert artist and track
+                        artist_image_url = get_artist_image_url(
+                            sp=sp, artist_id=artist_id
+                        )
+
+                        db.upsert_artist(
+                            conn,
+                            artist_id=artist_id,
+                            name=artist_name,
+                            user_id=user["id"],
+                            artist_image_url=artist_image_url,
+                        )
+                        db.upsert_track(
+                            conn,
+                            track_id=track_id,
+                            user_id=user["id"],
+                            name=track_name,
+                            artist_id=artist_id,
+                            album_image_url=album_image_url,
+                        )
+
+                        # Insert play
+                        played_at = item["played_at"]
+                        db.insert_play(
+                            conn,
+                            user_id=user["id"],
+                            track_id=track_id,
+                            played_at=played_at,
+                        )
+
+                    except Exception as e:
+                        logging.error(
+                            f"Error inserting data for track {track_name}: {e}"
+                        )
+
+                logging.info(
+                    f"Successfully updated plays for user {user['display_name']} ({user['spotify_user_id']})"
                 )
 
-                try:
-                    # Upsert artist and track
+            except Exception as e:
+                logging.error(
+                    f"Error processing user {user.get('spotify_user_id', 'unknown')}: {e}"
+                )
+                continue
 
-                    artist_image_url = get_artist_image_url(sp=sp, artist_id=artist_id)
-
-                    db.upsert_artist(
-                        conn,
-                        artist_id=artist_id,
-                        name=artist_name,
-                        user_id=user['id'],
-                        artist_image_url=artist_image_url,
-                    )
-                    db.upsert_track(
-                        conn,
-                        track_id=track_id,
-                        user_id=user['id'],
-                        name=track_name,
-                        artist_id=artist_id,
-                        album_image_url=album_image_url,
-                    )
-
-                    # Insert play
-                    played_at = item["played_at"]
-                    db.insert_play(
-                        conn, user_id=user['id'], track_id=track_id, played_at=played_at
-                    )
-
-                except Exception as e:
-                    logging.error(f"Error inserting data for track {track_name}: {e}")
-
-            # Commit all changes and close connection
+        # Commit all changes after processing all users
+        if conn:
             conn.commit()
-            conn.close()
-            logging.info(
-                f"Successfully updated plays for user {user["display_name"]} ({user["spotify_user_id"]})"
-            )
+            logging.info("All data committed successfully")
 
     except Exception as e:
         logging.error(f"Error fetching Spotify data: {e}")
+        if conn:
+            conn.rollback()
         raise
+    finally:
+        # Close connection in finally block
+        if conn:
+            conn.close()
 
 
 def main():
@@ -206,4 +233,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
