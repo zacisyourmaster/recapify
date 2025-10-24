@@ -8,6 +8,7 @@ export default function Footer() {
           to your inbox. Stay on top of your music habits and discover your top
           tracks and artists every week!
         </p>
+        <p className="text-xs text-zinc-500 mb-2">Disclaimer: Unfortunately, reports can only be sent to users that I have authenticated.</p>
         <p>
           Webpage by{" "}
           <a href="https://zacisyourmaster.github.io" className="underline">
